@@ -1,7 +1,7 @@
 // 1. Use require instead of import
 const express = require('express');
 const morgan = require('morgan');
-//const _ = require('lodash');
+const _ = require('lodash');
 
 // Internal modules
 const path = require('path');
@@ -22,26 +22,23 @@ const questions = JSON.parse(fs.readFileSync('./questions.json', 'utf-8'));
 // Endpoint para obtener una pregunta aleatoria (con filtro por categoría)
 app.get('/api/question', (req, res) => {
   // 0. Obtenemos el parámetro 'category'
-  const categoryFilter = req.query.category;
+  const categoryParam = req.query.category;
 
-  // 1. Preparamos el array de preguntas. Por defecto son todas.
-  let filteredQuestions = questions;
+  // 1. Filtrado:
+  // Si hay categoría, usamos _.filter con un objeto de búsqueda simple { category: ... }
+  // Si no, usamos el array original 'questions'
+  const filteredQuestions = categoryParam ? _.filter(questions, { category: categoryParam}) : questions;
 
-  // 2. Reducimos el array solo a las coincidentes
-  if (categoryFilter) {
-    filteredQuestions = questions.filter(q => q.category === categoryFilter);
-  }
-
-  // 3. Manejo de error
-  if (filteredQuestions.length === 0) {
+  // 2. Manejo de error con lodash.
+  if (_.isEmpty(filteredQuestions)) {
     return res.status(404).json({ message: "No se encontraron preguntas para esta categoría" });
   }
 
-  // 4. Elegimos una pregunta aleatoria del array
-  const randomIndex = Math.floor(Math.random() * filteredQuestions.length);
-  const randomQuestion = filteredQuestions[randomIndex];
+  // 3. Elegimos una pregunta aleatoria con lodash
+  const randomQuestion = _.sample(filteredQuestions);
 
-  res.send(randomQuestion);
+  // 4. Devolvemos un JSON.
+  res.status(200).json(randomQuestion);
 });
 
 // Endpoint para obtener categorías únicas
@@ -53,7 +50,7 @@ app.get('/api/categories', (req, res) => {
   const uniqueCategories = [...new Set(allCategories)];
 
   // 3. Devolvemos el array limpio
-  res.send(uniqueCategories);
+  res.status(200).json(uniqueCategories);
 });
 
 // Iniciar servidor
